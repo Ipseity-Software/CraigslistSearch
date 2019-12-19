@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace CraigslistSearch
+﻿namespace CraigslistSearch
 {
     public static class SearchExtensions
     {
@@ -13,7 +9,7 @@ namespace CraigslistSearch
         {
             string lower = inp.ToLower();
             foreach (string str in lst)
-                if (str == lower)
+                if (lower.Contains(str))
                     return true;
             return false;
         }
