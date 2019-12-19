@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+  <appSettings>
+    <add key="SMTPServer" value="smtp.gmail.com" />
+    <add key="EmailAddr" value="email" />
+    <add key="EmailPasswd" value="password" />
+    <add key="Keywords" value="path_to_keywords.txt" />
+    <add key="BannedWords" value="path_to_banned.txt" />
+  </appSettings>
+</configuration>
