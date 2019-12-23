@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
@@ -24,7 +25,7 @@ namespace CraigslistSearch
         {
             List<CLEntry> results = new List<CLEntry>();
             int complete = 0;
-            System.Console.WriteLine($"Searching {Craigslist.Endpoints.Length} locations...");
+            Console.WriteLine($"Searching {Craigslist.Endpoints.Length} locations...");
             foreach (string endpoint in Craigslist.Endpoints)
             { 
                 results.AddRange(Craigslist.Search(endpoint).Content.Split("<item rdf").Select(rssItem => new CLEntry
@@ -33,18 +34,26 @@ namespace CraigslistSearch
                     Title = rssItem.GrabBetween("<title>", "</title>"),
                     URL = rssItem.GrabBetween("<link>", "</link>")
                 }));
-                System.Console.Write("\r                                                                                                \r");
-                System.Console.Write($"{++complete}/{Craigslist.Endpoints.Length} ({complete * 100 / Craigslist.Endpoints.Length}%)");
+                Console.Write("\r                                                                                                \r");
+                Console.Write($"{++complete}/{Craigslist.Endpoints.Length} ({complete * 100 / Craigslist.Endpoints.Length}%)");
             }
-            System.Console.WriteLine("\nProcessing...");
-            string[] keywords = File.ReadAllLines(ConfigurationManager.AppSettings["Keywords"]),
-                     banned = File.ReadAllLines(ConfigurationManager.AppSettings["BannedWords"]);
-            results = results.Where(x => x.Valid && keywords.ContainsIns(x.Search) && !banned.ContainsIns(x.Title)).Distinct(new CLEntry.Compr()).ToList();
-#if !DEBUG
-            SendEmail(results);
-#endif
+            Console.WriteLine("\nProcessing...");
+            string[] keywords, banned;
+            keywords = File.ReadAllLines(ConfigurationManager.AppSettings["Keywords"]);
+            try
+            {
+                banned = File.ReadAllLines(ConfigurationManager.AppSettings["BannedWords"]);
+            }
+            catch (FileNotFoundException)
+            {
+                banned = null;
+            }
+            results = results.Where(x => x.Valid && keywords.ContainsIns(x.Search) && !(banned?.ContainsIns(x.Title) ?? false)).Distinct(new CLEntry.Compr()).ToList();
+            foreach (CLEntry result in results)
+                Console.WriteLine($"{result.Title}\n\t{result.URL}");
+            if (ConfigurationManager.AppSettings["EnableEmail"] == "true")
+                SendEmail(results);
         }
-#if !DEBUG
         static void SendEmail(List<CLEntry> clresults)
         {
             string body = string.Join("\n\n", clresults.Select(x => $"{x.Title}\n{x.URL}"));
@@ -61,18 +70,17 @@ namespace CraigslistSearch
                 {
                     User = ConfigurationManager.AppSettings["EmailAddr"],
                     Password = ConfigurationManager.AppSettings["EmailPasswd"],
-                    Port = 587,
+                    Port = int.Parse(ConfigurationManager.AppSettings["SMTPPort"]),
                     ConnectType = EASendMail.SmtpConnectType.ConnectSSLAuto
                 };
                 EASendMail.SmtpClient oSmtp = new EASendMail.SmtpClient();
                 oSmtp.SendMail(oServer, oMail);
             }
-            catch (System.Exception ep)
+            catch (Exception ep)
             {
-                System.Console.WriteLine("failed to send email with the following error:");
-                System.Console.WriteLine(ep.Message);
+                Console.WriteLine("failed to send email with the following error:");
+                Console.WriteLine(ep.Message);
             }
         }
-#endif
     }
 }

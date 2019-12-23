@@ -1,6 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <configuration>
   <appSettings>
+    <add key="EnableEmail" value="false"/>
+    <add key="SMTPPort" value="587" />
     <add key="SMTPServer" value="smtp.gmail.com" />
     <add key="EmailAddr" value="email" />
     <add key="EmailPasswd" value="password" />
