@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
+
 namespace CraigslistSearch
 {
     class Program
@@ -57,29 +60,26 @@ namespace CraigslistSearch
         static void SendEmail(List<CLEntry> clresults)
         {
             string body = string.Join("\n\n", clresults.Select(x => $"{x.Title}\n{x.URL}"));
-            try
+
+            NetworkCredential credential = new NetworkCredential(ConfigurationManager.AppSettings["EmailAddr"], ConfigurationManager.AppSettings["EmailPasswd"]);
+            using (SmtpClient client = new SmtpClient(ConfigurationManager.AppSettings["SMTPServer"])
             {
-                EASendMail.SmtpMail oMail = new EASendMail.SmtpMail("TryIt")
-                {
-                    From = ConfigurationManager.AppSettings["EmailAddr"],
-                    To = ConfigurationManager.AppSettings["EmailAddr"],
-                    Subject = "CL Report",
-                    TextBody = body
-                };
-                EASendMail.SmtpServer oServer = new EASendMail.SmtpServer(ConfigurationManager.AppSettings["SMTPServer"])
-                {
-                    User = ConfigurationManager.AppSettings["EmailAddr"],
-                    Password = ConfigurationManager.AppSettings["EmailPasswd"],
-                    Port = int.Parse(ConfigurationManager.AppSettings["SMTPPort"]),
-                    ConnectType = EASendMail.SmtpConnectType.ConnectSSLAuto
-                };
-                EASendMail.SmtpClient oSmtp = new EASendMail.SmtpClient();
-                oSmtp.SendMail(oServer, oMail);
-            }
-            catch (Exception ep)
+                UseDefaultCredentials = false,
+                EnableSsl = true,
+                Port = int.Parse(ConfigurationManager.AppSettings["SMTPPort"]),
+                Credentials = credential
+            })
             {
-                Console.WriteLine("failed to send email with the following error:");
-                Console.WriteLine(ep.Message);
+                using (MailMessage mailMessage = new MailMessage
+                {
+                    From = new MailAddress(ConfigurationManager.AppSettings["EmailAddr"])
+                })
+                {
+                    mailMessage.To.Add(ConfigurationManager.AppSettings["EmailAddr"]);
+                    mailMessage.Body = body;
+                    mailMessage.Subject = "CL Report";
+                    client.Send(mailMessage);
+                }
             }
         }
     }
